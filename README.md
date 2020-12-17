@@ -1,2 +1,1 @@
-# DStar-Lite
-# DStar-Lite
+# DStar-Lite Implementation
