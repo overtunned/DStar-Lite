@@ -1,15 +1,15 @@
 import numpy as np
 import heapq
 
-from numpy.random import random_integers as rnd, randint
+from numpy.random import  randint
 import matplotlib.pyplot as plt
 
 
 class Element:
-    def __init__(self, key, value1, value2):
+    def __init__(self, key, v1, v2):
         self.key = key
-        self.value1 = value1
-        self.value2 = value2
+        self.v1 = v1
+        self.v2 = v2
 
     def __eq__(self, other):
         return np.sum(np.abs(self.key - other.key)) == 0
@@ -18,16 +18,16 @@ class Element:
         return self.key != other.key
 
     def __lt__(self, other):
-        return (self.value1, self.value2) < (other.value1, other.value2)
+        return (self.v1, self.v2) < (other.v1, other.v2)
 
     def __le__(self, other):
-        return (self.value1, self.value2) <= (other.value1, other.value2)
+        return (self.v1, self.v2) <= (other.v1, other.v2)
 
     def __gt__(self, other):
-        return (self.value1, self.value2) > (other.value1, other.value2)
+        return (self.v1, self.v2) > (other.v1, other.v2)
 
     def __ge__(self, other):
-        return (self.value1, self.value2) >= (other.value1, other.value2)
+        return (self.v1, self.v2) >= (other.v1, other.v2)
 
 
 class DStarLitePlanning:
@@ -69,7 +69,9 @@ class DStarLitePlanning:
         while len(self.queue) > 0 and \
                 heapq.nsmallest(1, self.queue)[0] < Element(self.start, *self.CalculateKey(self.start)) or \
                 self.rhs[self.start[0], self.start[1]] != self.g[self.start[0], self.start[1]]:
+
             u = heapq.heappop(self.queue).key
+
             if self.g[u[0], u[1]] > self.rhs[u[0], u[1]]:
                 self.g[u[0], u[1]] = self.rhs[u[0], u[1]]
                 s_list = self.succ(u)
@@ -118,7 +120,7 @@ class DStarLitePlanning:
         return real_list
 
 
-def initDStar(global_map, gx, gy, sx, sy):
+def Main(global_map, gx, gy, sx, sy):
     node = DStarLitePlanning(global_map, sx, sy, gx, gy)
     last = node.start
     last = ScanAndUpdate(node, last)
@@ -146,7 +148,7 @@ def ScanAndUpdate(node, last):
             flag = False
             print('See a wall!')
             break
-    if flag == False:
+    if not flag:
         node.k_m += node.h_estimate(last, node.start)
         last = node.start.copy()
         for s in s_list:
@@ -163,7 +165,6 @@ def ScanAndUpdate(node, last):
     return last
 
 
-# randomly generate connected maze
 def maze(width, height, complexity=.02, density=.01):
     # Only odd shapes
     shape = ((height // 2) * 2 + 1, (width // 2) * 2 + 1)
@@ -220,5 +221,5 @@ if __name__ == "__main__":
     plt.plot(ox, oy, ".b")
     plt.plot(sx, sy, "og")
     plt.plot(gx, gy, "xb")
-    initDStar(global_map, gx, gy, sx, sy)
+    Main(global_map, gx, gy, sx, sy)
     plt.show()
