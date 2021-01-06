@@ -1,3 +1,4 @@
+import matplotlib
 import numpy as np
 import heapq
 
@@ -5,7 +6,7 @@ from numpy.random import  randint
 import matplotlib.pyplot as plt
 
 
-class Element:
+class Node:
     def __init__(self, key, v1, v2):
         self.key = key
         self.v1 = v1
@@ -30,24 +31,23 @@ class Element:
         return (self.v1, self.v2) >= (other.v1, other.v2)
 
 
-class DStarLitePlanning:
+class DStarLite:
     def __init__(self, r_map, sx, sy, gx, gy):
         self.start = np.array([sx, sy])
         self.goal = np.array([gx, gy])
         self.k_m = 0
-        self.rhs = np.ones((len(r_map), len(r_map[0]))) * np.inf
+        self.rhs = np.ones((r_map.shape[0], r_map.shape[1])) * np.inf
         self.g = self.rhs.copy()
-        self.global_map = r_map
+        self.graph = r_map
         self.sensed_map = np.zeros((len(r_map), len(r_map[0])))
         self.rhs[self.goal[0], self.goal[1]] = 0
         self.queue = []
-        node = Element(self.goal, *self.CalculateKey(self.goal))
+        node = Node(self.goal, *self.CalculateKey(self.goal))
         heapq.heappush(self.queue, node)
 
     def CalculateKey(self, node):
         key = [0, 0]
-        key[0] = min(self.g[node[0], node[1]], self.rhs[node[0], node[1]]) + self.h_estimate(self.start,
-                                                                                             node) + self.k_m
+        key[0] = min(self.g[node[0], node[1]], self.rhs[node[0], node[1]]) + self.h_estimate(self.start, node) + self.k_m
         key[1] = min(self.g[node[0], node[1]], self.rhs[node[0], node[1]])
         return key
 
@@ -59,20 +59,25 @@ class DStarLitePlanning:
                 if self.cost(u, s) + self.g[s[0], s[1]] < min_s:
                     min_s = self.cost(u, s) + self.g[s[0], s[1]]
             self.rhs[u[0], u[1]] = min_s
-        if Element(u, 0, 0) in self.queue:
-            self.queue.remove(Element(u, 0, 0))
+        if Node(u, 0, 0) in self.queue:
+            self.queue.remove(Node(u, 0, 0))
             heapq.heapify(self.queue)
         if self.g[u[0], u[1]] != self.rhs[u[0], u[1]]:
-            heapq.heappush(self.queue, Element(u, *self.CalculateKey(u)))
+            heapq.heappush(self.queue, Node(u, *self.CalculateKey(u)))
 
     def ComputeShortestPath(self):
         while len(self.queue) > 0 and \
-                heapq.nsmallest(1, self.queue)[0] < Element(self.start, *self.CalculateKey(self.start)) or \
+                heapq.nsmallest(1, self.queue)[0] < Node(self.start, *self.CalculateKey(self.start)) or \
                 self.rhs[self.start[0], self.start[1]] != self.g[self.start[0], self.start[1]]:
 
+            k_old = heapq.nsmallest(1, self.queue)[0]
             u = heapq.heappop(self.queue).key
+            if k_old < Node(u, *self.CalculateKey(u)):
+                heapq.heappush(self.queue, Node(u, *self.CalculateKey(u)))
 
-            if self.g[u[0], u[1]] > self.rhs[u[0], u[1]]:
+            # u = heapq.heappop(self.queue).key
+
+            elif self.g[u[0], u[1]] > self.rhs[u[0], u[1]]:
                 self.g[u[0], u[1]] = self.rhs[u[0], u[1]]
                 s_list = self.succ(u)
                 for s in s_list:
@@ -89,17 +94,22 @@ class DStarLitePlanning:
         s_list = [np.array([u[0] - 1, u[1] - 1]), np.array([u[0] - 1, u[1]]), np.array([u[0] - 1, u[1] + 1]),
                   np.array([u[0], u[1] - 1]), np.array([u[0], u[1] + 1]), np.array([u[0] + 1, u[1] - 1]),
                   np.array([u[0] + 1, u[1]]), np.array([u[0] + 1, u[1] + 1])]
-        row = len(self.global_map)
-        col = len(self.global_map[0])
+        row = len(self.graph)
+        col = len(self.graph[0])
         real_list = []
         for s in s_list:
             if 0 <= s[0] < row and 0 <= s[1] < col:
                 real_list.append(s)
         return real_list
 
-    # heuristic estimation
+    #heuristic estimation
     def h_estimate(self, s1, s2):
-        return np.linalg.norm(s1 - s2)
+        x_dist = s1[0] - s2[0]
+        y_dist = s1[1] - s2[1]
+        dist = np.sqrt(x_dist**2 + y_dist**2)
+        return dist
+    # def h_estimate(self, s1, s2):
+    #     return np.linalg.norm(s1 - s2)
 
     # calculate cost between nodes
     def cost(self, u1, u2):
@@ -110,8 +120,8 @@ class DStarLitePlanning:
 
     def sense(self, range_s):
         real_list = []
-        row = len(self.global_map)
-        col = len(self.global_map[0])
+        row = len(self.graph)
+        col = len(self.graph[0])
         for i in range(-range_s, range_s + 1):
             for j in range(-range_s, range_s + 1):
                 if 0 <= self.start[0] + i < row and 0 <= self.start[1] + j < col:
@@ -120,52 +130,32 @@ class DStarLitePlanning:
         return real_list
 
 
-def Main(global_map, gx, gy, sx, sy):
-    node = DStarLitePlanning(global_map, sx, sy, gx, gy)
-    last = node.start
-    last = ScanAndUpdate(node, last)
-    node.ComputeShortestPath()
-    while np.sum(np.abs(node.start - node.goal)) != 0:
-        s_list = node.succ(node.start)
-        min_s = np.inf
-        for s in s_list:
-            plt.plot(s[0], s[1], 'xy')
-            if node.cost(node.start, s) + node.g[s[0], s[1]] < min_s:
-                min_s = node.cost(node.start, s) + node.g[s[0], s[1]]
-                temp = s
-        node.start = temp.copy()
-        print(node.start[0], node.start[1])
-        plt.plot(node.start[0], node.start[1], '.b')
-        last = ScanAndUpdate(node, last)
-        plt.pause(0.1)
-
-
 def ScanAndUpdate(node, last):
-    s_list = node.sense(3)
+    s_list = node.sense(2)
     flag = True
     for s in s_list:
-        if node.sensed_map[s[0], s[1]] != node.global_map[s[0], s[1]]:
+        if node.sensed_map[s[0], s[1]] != node.graph[s[0], s[1]]:
             flag = False
-            print('See a wall!')
+            # print('See a wall!')
             break
     if not flag:
         node.k_m += node.h_estimate(last, node.start)
         last = node.start.copy()
         for s in s_list:
-            if node.sensed_map[s[0], s[1]] != node.global_map[s[0], s[1]]:
+            if node.sensed_map[s[0], s[1]] != node.graph[s[0], s[1]]:
                 plt.plot(s[0], s[1], 'xr')
-                node.sensed_map[s[0], s[1]] = node.global_map[s[0], s[1]]
+                node.sensed_map[s[0], s[1]] = node.graph[s[0], s[1]]
                 node.UpdateVertex(s)
         for i in range(len(node.queue)):
             u = heapq.heappop(node.queue).key
-            temp = Element(u, *node.CalculateKey(u))
+            temp = Node(u, *node.CalculateKey(u))
             heapq.heappush(node.queue, temp)
         heapq.heapify(node.queue)
         node.ComputeShortestPath()
     return last
 
 
-def maze(width, height, complexity=.02, density=.01):
+def maze(width, height, complexity=.05, density=.05):
     # Only odd shapes
     shape = ((height // 2) * 2 + 1, (width // 2) * 2 + 1)
     # Adjust complexity and density relative to maze size
@@ -175,18 +165,21 @@ def maze(width, height, complexity=.02, density=.01):
     # Build actual maze
     z = np.zeros(shape, dtype=float)
     # Fill borders
-    z[0, :] = z[-1, :] = 1
-    z[:, 0] = z[:, -1] = 1
+    z[0, :] = z[-1, :] = z[:, 0] = z[:, -1]= 1
     # Make isles
     for i in range(density):
         x, y = randint(0, shape[1] // 2) * 2, randint(0, shape[0] // 2) * 2
         z[y, x] = 1
         for j in range(complexity):
             neighbours = []
-            if x > 1:           neighbours.append((y, x - 2))
-            if x < shape[1] - 2:  neighbours.append((y, x + 2))
-            if y > 1:           neighbours.append((y - 2, x))
-            if y < shape[0] - 2:  neighbours.append((y + 2, x))
+            if x > 1:
+                neighbours.append((y, x - 2))
+            if x < shape[1] - 2:
+                neighbours.append((y, x + 2))
+            if y > 1:
+                neighbours.append((y - 2, x))
+            if y < shape[0] - 2:
+                neighbours.append((y + 2, x))
             if len(neighbours):
                 y_, x_ = neighbours[randint(0, len(neighbours) - 1)]
                 if z[y_, x_] == 0:
@@ -198,28 +191,46 @@ def maze(width, height, complexity=.02, density=.01):
 
 if __name__ == "__main__":
     # set start and goal point
-    sx = 1
-    sy = 1
-    gx = 49
-    gy = 49
-    grid_size = 1.0
+    sx = 0
+    sy = 0
+    gx = 19
+    gy = 19
 
     # set obstable positions
+    graph = maze(width=20, height=20)
     ox, oy = [], []
-    global_map = maze(width=50, height=50)
-    global_map[global_map == 1] = np.inf
-    np.savetxt("global_map.txt", global_map)
-    # global_map = np.loadtxt('map/global_map.txt')
-
-    for i in range(1, len(global_map)):
-        for j in range(1, len(global_map[i])):
-            if global_map[i][j] == np.inf:
+    for i in range(0, len(graph)):
+        for j in range(0, len(graph[i])):
+            if graph[i][j] == 1:
                 ox.append(i)
                 oy.append(j)
+
+    graph[graph == 1] = np.inf
+    matplotlib.rc('figure', figsize=(5, 5))
     plt.grid(True)
     plt.plot([sx, gx], [sy, gy], 'r')
-    plt.plot(ox, oy, ".b")
+    plt.plot(ox, oy, ".k")
     plt.plot(sx, sy, "og")
     plt.plot(gx, gy, "xb")
-    Main(global_map, gx, gy, sx, sy)
+
+    dstar = DStarLite(graph, sx, sy, gx, gy)
+
+    last = dstar.start
+    last = ScanAndUpdate(dstar, last)
+    dstar.ComputeShortestPath()
+    while np.sum(np.abs(dstar.start - dstar.goal)) != 0:
+        s_list = dstar.succ(dstar.start)
+        min_s = np.inf
+        for s in s_list:
+            # plt.plot(s[0], s[1], 'xy')
+            if dstar.cost(dstar.start, s) + dstar.g[s[0], s[1]] < min_s:
+                min_s = dstar.cost(dstar.start, s) + dstar.g[s[0], s[1]]
+                temp = s
+        dstar.start = temp.copy()
+        # print(dstar.start[0], dstar.start[1])
+        plt.plot(dstar.start[0], dstar.start[1], '.b')
+        last = ScanAndUpdate(dstar, last)
+        plt.pause(0.1)
+    print("Goal Reached")
+
     plt.show()
