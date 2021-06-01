@@ -1,0 +1,247 @@
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import random as ran\r\n\r\n\r\nclass CustomList:\r\n    def __init__(self, num):\r\n        self.my_list = [ran.randrange(1, 101, 1) for _ in range(num)]\r\n\r\n    def __str__(self):\r\n        return str(self.my_list)\r\n\r\n    def __setitem__(self, index, value):\r\n        self.my_list[index] = value\r\n\r\n    def __getitem__(self, index):\r\n        return self.my_list[index]\r\n\r\n    def __len__(self):\r\n        return len(self.my_list)\r\n\r\n\r\nif __name__ == '__main__':\r\n    obj = CustomList(5)\r\n    print(obj)\r\n    for item in obj:\r\n        print(item)\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	(revision 830b6c5fde576942a69c225efaf98aa7a1719325)
++++ b/main.py	(date 1608595646438)
+@@ -1,25 +1,76 @@
+-import random as ran
++import numpy as np
++import heapq
++
+ 
++class Node:
++    def __init__(self, key, value1, value2):
++        self.key = key
++        self.value1 = value1
++        self.value2 = value2
+ 
+-class CustomList:
+-    def __init__(self, num):
+-        self.my_list = [ran.randrange(1, 101, 1) for _ in range(num)]
+ 
+-    def __str__(self):
+-        return str(self.my_list)
++class DstarLite:
++    def __init__(self, map, x_s, y_s, x_g, y_g):
++        self.start = np.array([x_s, y_s])
++        self.goal = np.array([x_g, y_g])
++        self.k_m = 0
++        self.rhs = np.ones((len(map), len(map[0]))) * np.inf
++        self.g = self.rhs.copy()
++        self.global_map = map
++        self.sensed_map = np.zeros((len(map), len(map[0])))
++        self.rhs[self.goal[0], self.goal[1]] = 0
++        self.queue = []
++        A = Node(self.goal, *self.CalculateKey(self.goal))
++        heapq.heappush(self.queue, A)
+ 
+-    def __setitem__(self, index, value):
+-        self.my_list[index] = value
++    def h(self, s, s1):
++        return abs(s[0] - s1[0]) + abs(s[1] - s1[1])
+ 
+-    def __getitem__(self, index):
+-        return self.my_list[index]
++    def CalculateKey(self, s):
++        k = [0, 0]
++        k[0] = min(self.g[s[0], s[1]], self.rhs[s[0], s[1]]) + self.h(self.start, s) + km
++        k[1] = min(self.g[s[0], s[1]], self.rhs[s[0], s[1]])
++        return k
+ 
+-    def __len__(self):
+-        return len(self.my_list)
++    def succ(self, u):
++        l = [np.array([u[0] - 1, u[1] - 1]),
++             np.array([u[0] - 1, u[1] + 1]),
++             np.array([u[0] + 1, u[1] - 1]),
++             np.array([u[0] + 1, u[1] + 1]),
++
++             np.array([u[0] - 1, u[1]]),
++             np.array([u[0] + 1, u[1]]),
++
++             np.array([u[0], u[1] - 1]),
++             np.array([u[0], u[1] + 1])]
++        row = len(self.global_map)
++        col = len(self.global_map[0])
++        s_list = []
++        for s in l:
++            if 0 <= s[0] < row and 0 <= s[1] < col:
++                s_list.append(s)
++        return s_list
++
++    def cost(self, u1, u2):
++        if self.sensed_map[u1[0], u1[1]] == np.inf or self.sensed_map[u2[0], u2[1]] == np.inf:
++            return np.inf
++        else:
++            return self.h(u1, u2)
++
++    def UpdateVertex(self, u):
++        if u[0] != self.goal[0] and u[1] != self.goal[1]:
++            s_list = self.succ(u)
+ 
+ 
+ if __name__ == '__main__':
+-    obj = CustomList(5)
+-    print(obj)
+-    for item in obj:
+-        print(item)
++    map = np.zeros(shape=(10, 10))  # [[0 for j in range(10)] for i in range(10)]
++
++    x_start = 0
++    y_start = 0
++
++    x_goal = 9
++    y_goal = 9
++
++    km = 0
++
++    DstarLite(map, x_start, y_start, x_goal, y_goal, km)
+Index: grid.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/grid.py b/grid.py
+new file mode 100644
+--- /dev/null	(date 1608644382608)
++++ b/grid.py	(date 1608644382608)
+@@ -0,0 +1,5 @@
++import numpy as np
++from queue import PriorityQueue
++k = np.array([0, 0])
++key = np.array([2, 3])
++print(((k - key)))
+Index: .idea/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+new file mode 100644
+--- /dev/null	(date 1608219544246)
++++ b/.idea/.gitignore	(date 1608219544246)
+@@ -0,0 +1,3 @@
++# Default ignored files
++/shelf/
++/workspace.xml
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+new file mode 100644
+--- /dev/null	(date 1608219544201)
++++ b/.idea/modules.xml	(date 1608219544201)
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectModuleManager">
++    <modules>
++      <module fileurl="file://$PROJECT_DIR$/.idea/DStar-Lite.iml" filepath="$PROJECT_DIR$/.idea/DStar-Lite.iml" />
++    </modules>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/DStar-Lite.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/DStar-Lite.iml b/.idea/DStar-Lite.iml
+new file mode 100644
+--- /dev/null	(date 1608219544222)
++++ b/.idea/DStar-Lite.iml	(date 1608219544222)
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="PYTHON_MODULE" version="4">
++  <component name="NewModuleRootManager">
++    <content url="file://$MODULE_DIR$" />
++    <orderEntry type="jdk" jdkName="Python 3.8" jdkType="Python SDK" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++  <component name="TestRunnerService">
++    <option name="PROJECT_TEST_RUNNER" value="pytest" />
++  </component>
++</module>
+\ No newline at end of file
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+new file mode 100644
+--- /dev/null	(date 1608219544301)
++++ b/.idea/vcs.xml	(date 1608219544301)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="$PROJECT_DIR$" vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/inspectionProfiles/profiles_settings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/inspectionProfiles/profiles_settings.xml b/.idea/inspectionProfiles/profiles_settings.xml
+new file mode 100644
+--- /dev/null	(date 1608219544184)
++++ b/.idea/inspectionProfiles/profiles_settings.xml	(date 1608219544184)
+@@ -0,0 +1,6 @@
++<component name="InspectionProjectProfileManager">
++  <settings>
++    <option name="USE_PROJECT_PROFILE" value="false" />
++    <version value="1.0" />
++  </settings>
++</component>
+\ No newline at end of file
+Index: .idea/inspectionProfiles/Project_Default.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/inspectionProfiles/Project_Default.xml b/.idea/inspectionProfiles/Project_Default.xml
+new file mode 100644
+--- /dev/null	(date 1608219544229)
++++ b/.idea/inspectionProfiles/Project_Default.xml	(date 1608219544229)
+@@ -0,0 +1,12 @@
++<component name="InspectionProjectProfileManager">
++  <profile version="1.0">
++    <option name="myName" value="Project Default" />
++    <inspection_tool class="PyPep8Inspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
++      <option name="ignoredErrors">
++        <list>
++          <option value="E501" />
++        </list>
++      </option>
++    </inspection_tool>
++  </profile>
++</component>
+\ No newline at end of file
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+new file mode 100644
+--- /dev/null	(date 1608284824268)
++++ b/.idea/misc.xml	(date 1608284824268)
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.8" project-jdk-type="Python SDK" />
++  <component name="PyCharmProfessionalAdvertiser">
++    <option name="shown" value="true" />
++  </component>
++</project>
+\ No newline at end of file
